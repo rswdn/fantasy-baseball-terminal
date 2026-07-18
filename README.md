@@ -10,6 +10,9 @@ original CSVs in `data/` are retained as an offline fallback.
 The time-window control supports the last 7, 14, or 30 days and the full
 current MLB regular season.
 
+Select a player row to view current-season totals alongside the active trend
+window, or open the player's official MLB profile in a new browser tab.
+
 ## Run locally
 
 ```bash

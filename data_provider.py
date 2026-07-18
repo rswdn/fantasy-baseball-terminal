@@ -33,18 +33,19 @@ EASTERN = ZoneInfo("America/New_York")
 CACHE_MAX_AGE = timedelta(hours=12)
 REQUEST_TIMEOUT = 30
 TimeWindow: TypeAlias = int | Literal["season"]
+PlayerType: TypeAlias = Literal["hitter", "pitcher"]
 SUPPORTED_WINDOWS: tuple[TimeWindow, ...] = (7, 14, 30, "season")
 
 HITTER_COLUMNS = [
-    "Player", "Team", "Pos", "Roster%", "PA", "wRC+", "Barrel%",
-    "HardHit%", "BB%", "K%", "SB",
+    "MLBAM_ID", "Player", "Team", "Pos", "Roster%", "PA", "wRC+",
+    "Barrel%", "HardHit%", "BB%", "K%", "SB",
 ]
 PITCHER_COLUMNS = [
-    "Player", "Team", "Role", "Roster%", "IP", "ERA", "WHIP",
-    "K-BB%", "SwStr%", "HardHit%",
+    "MLBAM_ID", "Player", "Team", "Role", "Roster%", "IP", "ERA",
+    "WHIP", "K-BB%", "SwStr%", "HardHit%",
 ]
 STREAMER_COLUMNS = [
-    "Player", "Team", "Matchup", "Roster%", "Projected IP",
+    "MLBAM_ID", "Player", "Team", "Matchup", "Roster%", "Projected IP",
     "K-BB%", "SwStr%", "Opp wRC+", "Park Factor",
 ]
 
@@ -127,6 +128,62 @@ def _date_range_stats(group: str, start: date, end: date) -> list[dict[str, Any]
     )
     stats = payload.get("stats", [])
     return stats[0].get("splits", []) if stats else []
+
+
+def _resolve_player_id(player_name: str) -> int:
+    """Resolve a player name for snapshots created before IDs were retained."""
+    payload = _mlb_get(
+        "people/search",
+        names=player_name,
+        sportIds=1,
+        hydrate="currentTeam",
+    )
+    people = payload.get("people", [])
+    if not people:
+        raise RuntimeError(f"MLB could not find {player_name}.")
+
+    normalized_name = player_name.casefold()
+    player = next(
+        (
+            person
+            for person in people
+            if str(person.get("fullName", "")).casefold() == normalized_name
+        ),
+        people[0],
+    )
+    player_id = player.get("id")
+    if not player_id:
+        raise RuntimeError(f"MLB returned no player ID for {player_name}.")
+    return int(player_id)
+
+
+def fetch_player_season_stats(
+    player_name: str,
+    player_id: int | None,
+    player_type: PlayerType,
+    season: int | None = None,
+) -> dict[str, Any]:
+    """Return one player's current MLB season totals and resolved ID."""
+    resolved_id = player_id or _resolve_player_id(player_name)
+    selected_season = season or datetime.now(EASTERN).year
+    group = "hitting" if player_type == "hitter" else "pitching"
+    payload = _mlb_get(
+        f"people/{resolved_id}/stats",
+        stats="season",
+        group=group,
+        season=selected_season,
+        sportIds=1,
+    )
+    sections = payload.get("stats", [])
+    splits = sections[0].get("splits", []) if sections else []
+    stats = splits[0].get("stat", {}) if splits else {}
+    return {
+        "player_id": resolved_id,
+        "player_name": player_name,
+        "player_type": player_type,
+        "season": selected_season,
+        "stats": stats,
+    }
 
 
 def _regular_season_start(year: int, through: date) -> date:
@@ -262,6 +319,7 @@ def _build_hitters(
         name = player.get("fullName", "Unknown")
         rows.append(
             {
+                "MLBAM_ID": player_id,
                 "Player": name,
                 "Team": split.get("team", {}).get("abbreviation", ""),
                 "Pos": split.get("position", {}).get("abbreviation", ""),
@@ -307,6 +365,7 @@ def _build_pitchers(
         games_started = int(stat.get("gamesStarted", 0))
         rows.append(
             {
+                "MLBAM_ID": player_id,
                 "Player": name,
                 "Team": split.get("team", {}).get("abbreviation", ""),
                 "Role": "SP" if games_started else "RP",
@@ -400,6 +459,7 @@ def _build_streamers(
             metrics = pitcher_metrics.loc[name]
             rows.append(
                 {
+                    "MLBAM_ID": player_id,
                     "Player": name,
                     "Team": team_info.get("team", {}).get(
                         "abbreviation", details["team"]
