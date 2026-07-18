@@ -1,0 +1,93 @@
+# Python bytecode and interpreter caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Native extensions
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Streamlit local configuration and secrets
+.streamlit/
+
+# Test, coverage, lint, and type-check caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.cache/
+
+# Packaging and build output
+build/
+dist/
+downloads/
+sdist/
+wheels/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+MANIFEST
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Runtime output
+*.log
+*.pid
+*.seed
+*.out
+*.tmp
+*.temp
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+
+# Application-generated data cache (source CSV files remain tracked)
+data/cache/
+
+# Local project tooling
+.tools/
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Operating system metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
