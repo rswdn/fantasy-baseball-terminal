@@ -51,7 +51,11 @@ def _handle_player_selection(
 ) -> None:
     """Store the selected row and clear selections from the other tables."""
     table_state = st.session_state.get(table_key)
-    rows = table_state.selection.rows if table_state else []
+    # Streamlit stores dataframe widget state as a dictionary. Depending on
+    # whether it came directly from the widget or was reset through session
+    # state, it may also be an attribute-access wrapper around that dict.
+    selection = table_state.get("selection", {}) if table_state else {}
+    rows = selection.get("rows", []) if selection else []
     if not rows:
         return
 
